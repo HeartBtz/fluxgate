@@ -1,0 +1,75 @@
+{{define "login.html"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login — FluxGate</title>
+    <link rel="icon" type="image/png" href="/static/favicon.png">
+    <style>
+        :root {
+            --bg: #0f1117; --surface: #1a1d27; --border: #2d3248;
+            --text: #e1e4ed; --text2: #8b92a8; --accent: #6366f1; --accent2: #818cf8;
+            --danger: #ef4444; --radius: 8px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg); color: var(--text);
+            display: flex; align-items: center; justify-content: center; min-height: 100vh;
+        }
+        .login-card {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 40px; width: 100%; max-width: 400px;
+        }
+        .logo { text-align: center; font-size: 1.8rem; font-weight: 700; color: var(--accent2); margin-bottom: 8px; }
+        .subtitle { text-align: center; color: var(--text2); font-size: 0.9rem; margin-bottom: 32px; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 6px; font-size: 0.85rem; color: var(--text2); font-weight: 500; }
+        input {
+            width: 100%; padding: 12px 14px; background: var(--bg);
+            border: 1px solid var(--border); border-radius: var(--radius);
+            color: var(--text); font-size: 0.95rem;
+        }
+        input:focus { outline: none; border-color: var(--accent); }
+        .btn {
+            width: 100%; padding: 12px; background: var(--accent);
+            border: none; border-radius: var(--radius); color: white;
+            font-size: 1rem; font-weight: 600; cursor: pointer;
+            transition: background 0.15s;
+        }
+        .btn:hover { background: var(--accent2); }
+        .alert-error {
+            padding: 10px 14px; background: rgba(239,68,68,0.1);
+            border: 1px solid rgba(239,68,68,0.3); border-radius: var(--radius);
+            color: var(--danger); font-size: 0.9rem; margin-bottom: 20px;
+        }
+        .footer-text {
+            text-align: center; margin-top: 24px; color: var(--text2); font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <div class="logo">⚡ FluxGate</div>
+        <div class="subtitle">Self-hosted file distribution</div>
+        {{if .FlashErr}}
+        <div class="alert-error">{{.FlashErr}}</div>
+        {{end}}
+        <form method="POST" action="/login">
+            <input type="hidden" name="_csrf_token" value="{{.CSRFToken}}">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" required autofocus>
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            <button type="submit" class="btn">Sign In</button>
+        </form>
+        <div class="footer-text">Direct download · wget compatible · zero friction</div>
+    </div>
+</body>
+</html>
+{{end}}

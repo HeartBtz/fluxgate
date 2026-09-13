@@ -1,0 +1,99 @@
+services:
+  fluxgate:
+    image: "${FLUXGATE_IMAGE:-ghcr.io/heartbtz/fluxgate}:${FLUXGATE_VERSION:-latest}"
+    build:
+      context: .
+      args:
+        VERSION: "${FLUXGATE_VERSION:-dev}"
+        BUILD_TIME: "${FLUXGATE_BUILD_TIME:-unknown}"
+    environment:
+      FLUXGATE_HOST: "0.0.0.0"
+      FLUXGATE_PORT: "8080"
+      FLUXGATE_BASE_URL: "${BASE_URL:-http://localhost:8080}"
+      FLUXGATE_DB_HOST: postgres
+      FLUXGATE_DB_PORT: "5432"
+      FLUXGATE_DB_NAME: fluxgate
+      FLUXGATE_DB_USER: fluxgate
+      FLUXGATE_DB_PASSWORD: "${DB_PASSWORD:?DB_PASSWORD must be set}"
+      FLUXGATE_DB_SSLMODE: disable
+      FLUXGATE_JWT_SECRET: "${JWT_SECRET:?JWT_SECRET must be set (minimum 32 characters)}"
+      FLUXGATE_ADMIN_USERNAME: "${ADMIN_USERNAME:-admin}"
+      FLUXGATE_ADMIN_PASSWORD: "${ADMIN_PASSWORD:-}"
+      FLUXGATE_HMAC_SECRET: "${HMAC_SECRET:?HMAC_SECRET must be set (minimum 32 characters)}"
+      FLUXGATE_TRUSTED_PROXIES: "${FLUXGATE_TRUSTED_PROXIES:-}"
+      FLUXGATE_CORS_ORIGIN: "${FLUXGATE_CORS_ORIGIN:-}"
+      FLUXGATE_MAX_CONCURRENT_DL: "${FLUXGATE_MAX_CONCURRENT_DL:-100}"
+      FLUXGATE_MAX_CONCURRENT_UPLOADS: "${FLUXGATE_MAX_CONCURRENT_UPLOADS:-16}"
+      FLUXGATE_STORAGE_BACKEND: "${STORAGE_BACKEND:-local}"
+      FLUXGATE_STORAGE_LOCAL_PATH: /data/files
+      FLUXGATE_STORAGE_MIN_FREE_BYTES: "${STORAGE_MIN_FREE_BYTES:-1073741824}"
+      FLUXGATE_S3_ENDPOINT: "${S3_ENDPOINT:-}"
+      FLUXGATE_S3_REGION: "${S3_REGION:-us-east-1}"
+      FLUXGATE_S3_BUCKET: "${S3_BUCKET:-fluxgate-files}"
+      FLUXGATE_S3_ACCESS_KEY: "${S3_ACCESS_KEY:-}"
+      FLUXGATE_S3_SECRET_KEY: "${S3_SECRET_KEY:-}"
+      FLUXGATE_S3_USE_SSL: "${S3_USE_SSL:-true}"
+      FLUXGATE_S3_FORCE_PATH_STYLE: "${S3_FORCE_PATH_STYLE:-true}"
+      FLUXGATE_METRICS_ENABLED: "false"
+      FLUXGATE_LOG_LEVEL: "${FLUXGATE_LOG_LEVEL:-info}"
+      FLUXGATE_LOG_FORMAT: json
+    volumes:
+      - filedata:/data/files
+    ports:
+      - "${BIND_ADDRESS:-127.0.0.1}:${PORT:-8080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp:noexec,nosuid,nodev,size=32m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - internal
+      - public
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16.14-alpine3.24
+    environment:
+      POSTGRES_DB: fluxgate
+      POSTGRES_USER: fluxgate
+      POSTGRES_PASSWORD: "${DB_PASSWORD:?DB_PASSWORD must be set}"
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    tmpfs:
+      - /run/postgresql:noexec,nosuid,nodev,size=64m
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fluxgate -d fluxgate"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - internal
+    restart: unless-stopped
+
+networks:
+  internal:
+    internal: true
+  public:
+
+volumes:
+  filedata:
+  pgdata:

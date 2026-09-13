@@ -1,0 +1,443 @@
+{{define "admin.html"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin — FluxGate</title>
+    <link rel="icon" type="image/png" href="/static/favicon.png">
+    <style>
+        :root {
+            --bg: #0f1117; --surface: #1a1d27; --surface2: #242836;
+            --border: #2d3248; --text: #e1e4ed; --text2: #8b92a8;
+            --accent: #6366f1; --accent2: #818cf8; --success: #22c55e;
+            --danger: #ef4444; --warning: #f59e0b; --radius: 8px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg); color: var(--text); line-height: 1.6; min-height: 100vh;
+        }
+        a { color: var(--accent2); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+        nav {
+            background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 0;
+        }
+        nav .container {
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .logo { font-size: 1.3rem; font-weight: 700; color: var(--accent2); letter-spacing: -0.5px; }
+        .logo span { color: var(--text2); font-weight: 400; }
+        nav .user-info {
+            display: flex; align-items: center; gap: 16px;
+            color: var(--text2); font-size: 0.9rem;
+        }
+        .btn {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 8px 16px; border: none; border-radius: var(--radius);
+            font-size: 0.875rem; font-weight: 500; cursor: pointer;
+            transition: all 0.15s; text-decoration: none; color: white;
+        }
+        .btn-primary { background: var(--accent); }
+        .btn-primary:hover { background: var(--accent2); text-decoration: none; }
+        .btn-danger { background: var(--danger); }
+        .btn-danger:hover { background: #dc2626; text-decoration: none; }
+        .btn-success { background: var(--success); }
+        .btn-success:hover { background: #16a34a; text-decoration: none; }
+        .btn-warning { background: var(--warning); color: #000; }
+        .btn-warning:hover { background: #d97706; text-decoration: none; }
+        .btn-sm { padding: 4px 10px; font-size: 0.8rem; }
+        .btn-outline {
+            background: transparent; border: 1px solid var(--border); color: var(--text);
+        }
+        .btn-outline:hover { background: var(--surface2); text-decoration: none; }
+        .card {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 24px; margin-bottom: 20px;
+        }
+        .card h2 { font-size: 1.1rem; margin-bottom: 16px; color: var(--text); }
+        input, select {
+            padding: 10px 14px; background: var(--bg); border: 1px solid var(--border);
+            border-radius: var(--radius); color: var(--text); font-size: 0.9rem;
+        }
+        input:focus, select:focus { outline: none; border-color: var(--accent); }
+        label { display: block; margin-bottom: 6px; font-size: 0.85rem; color: var(--text2); font-weight: 500; }
+        .form-group { margin-bottom: 16px; }
+        .alert { padding: 12px 16px; border-radius: var(--radius); margin-bottom: 16px; font-size: 0.9rem; }
+        .alert.success {
+            background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); color: var(--success);
+        }
+        .alert.error {
+            background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: var(--danger);
+        }
+        table { width: 100%; border-collapse: collapse; }
+        th {
+            text-align: left; padding: 10px 12px; font-size: 0.8rem;
+            color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px;
+            border-bottom: 1px solid var(--border);
+        }
+        td { padding: 12px; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+        tr:hover { background: var(--surface2); }
+        .badge {
+            display: inline-block; padding: 2px 8px; border-radius: 12px;
+            font-size: 0.75rem; font-weight: 500;
+        }
+        .badge-active { background: rgba(34,197,94,0.15); color: var(--success); }
+        .badge-inactive { background: rgba(239,68,68,0.15); color: var(--danger); }
+        .badge-admin { background: rgba(245,158,11,0.15); color: var(--warning); }
+        .badge-user { background: rgba(99,102,241,0.15); color: var(--accent2); }
+        .grid { display: grid; gap: 20px; }
+        .grid-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+        .stat-value { font-size: 1.8rem; font-weight: 700; color: var(--accent2); }
+        .stat-label { font-size: 0.85rem; color: var(--text2); }
+        .progress-bar {
+            height: 6px; background: var(--bg); border-radius: 3px;
+            overflow: hidden; margin-top: 8px;
+        }
+        .progress-fill {
+            height: 100%; background: var(--accent); border-radius: 3px;
+            transition: width 0.3s;
+        }
+        .quota-input-group {
+            display: flex; gap: 8px; align-items: center;
+        }
+        .quota-input-group input { flex: 1; }
+        .quota-input-group select { width: 90px; }
+        .main-content { padding: 24px 0; }
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.6); z-index: 100;
+            align-items: center; justify-content: center;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 24px; width: 100%; max-width: 520px;
+        }
+        .modal h3 { margin-bottom: 16px; }
+        .search-bar {
+            display: flex; gap: 10px; margin-bottom: 16px;
+        }
+        .search-bar input { flex: 1; }
+        @media (max-width: 768px) { .grid-4 { grid-template-columns: 1fr 1fr; } }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="container">
+            <div class="logo">⚡ FluxGate <span>admin</span></div>
+            <div class="user-info">
+                {{if .User}}
+                <a href="/dashboard" class="btn btn-outline btn-sm">📂 Dashboard</a>
+                <span>{{.User.Username}}</span>
+                <form method="POST" action="/logout" style="display:inline;">
+                    <input type="hidden" name="_csrf_token" value="{{$.CSRFToken}}">
+                    <button type="submit" class="btn btn-outline btn-sm">Logout</button>
+                </form>
+                {{end}}
+            </div>
+        </div>
+    </nav>
+
+    <div class="main-content">
+        <div class="container">
+            {{if .Flash}}<div class="alert success">{{.Flash}}</div>{{end}}
+            {{if .FlashErr}}<div class="alert error">{{.FlashErr}}</div>{{end}}
+
+            <!-- Stats -->
+            {{if .Data}}
+            <div class="grid grid-4" style="margin-bottom: 24px;">
+                <div class="card">
+                    <div class="stat-value">{{.Data.TotalUsers}}</div>
+                    <div class="stat-label">Utilisateurs</div>
+                </div>
+                <div class="card">
+                    <div class="stat-value">{{.Data.TotalFiles}}</div>
+                    <div class="stat-label">Fichiers</div>
+                </div>
+                <div class="card">
+                    <div class="stat-value">{{.Data.TotalLinks}}</div>
+                    <div class="stat-label">Liens actifs</div>
+                </div>
+                <div class="card">
+                    <div class="stat-value">{{humanSize .Data.TotalStorage}}</div>
+                    <div class="stat-label">Stockage total</div>
+                </div>
+            </div>
+
+            <!-- Create User -->
+            <div class="card">
+                <h2>➕ Créer un utilisateur</h2>
+                <form method="POST" action="/admin/user/create" id="create-user-form">
+                    <input type="hidden" name="_csrf_token" value="{{$.CSRFToken}}">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
+                        <div class="form-group">
+                            <label>Nom d'utilisateur</label>
+                            <input type="text" name="username" required placeholder="johndoe" style="width:100%;">
+                        </div>
+                        <div class="form-group">
+                            <label>Email</label>
+                            <input type="email" name="email" required placeholder="john@example.com" style="width:100%;">
+                        </div>
+                        <div class="form-group">
+                            <label>Mot de passe</label>
+                            <input type="password" name="password" required minlength="8" placeholder="Min 8 caractères" style="width:100%;">
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
+                        <div class="form-group">
+                            <label>Rôle</label>
+                            <select name="role" style="width:100%;">
+                                <option value="user">Utilisateur</option>
+                                <option value="admin">Administrateur</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Quota</label>
+                            <div class="quota-input-group">
+                                <input type="number" name="quota_value" value="10" min="0" style="width:100%;">
+                                <select name="quota_unit">
+                                    <option value="GB" selected>Go</option>
+                                    <option value="MB">Mo</option>
+                                    <option value="TB">To</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Taille max fichier</label>
+                            <div class="quota-input-group">
+                                <input type="number" name="max_file_value" value="100" min="0" style="width:100%;">
+                                <select name="max_file_unit">
+                                    <option value="GB" selected>Go</option>
+                                    <option value="MB">Mo</option>
+                                    <option value="TB">To</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Créer</button>
+                </form>
+            </div>
+
+            <!-- Users -->
+            <div class="card">
+                <h2>👥 Utilisateurs</h2>
+                <div class="search-bar">
+                    <input type="text" id="user-search" placeholder="Rechercher un utilisateur..." style="width:100%;">
+                </div>
+                {{if .Data.Users}}
+                <div style="overflow-x: auto;">
+                    <table id="users-table">
+                        <thead>
+                            <tr>
+                                <th>Utilisateur</th>
+                                <th>Email</th>
+                                <th>Rôle</th>
+                                <th>Statut</th>
+                                <th>Stockage</th>
+                                <th>Quota</th>
+                                <th>Fichiers</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {{range .Data.Users}}
+                            <tr data-username="{{.Username}}" data-email="{{.Email}}">
+                                <td><strong>{{.Username}}</strong></td>
+                                <td style="color: var(--text2);">{{.Email}}</td>
+                                <td>
+                                    {{if eq .Role "admin"}}
+                                    <span class="badge badge-admin">admin</span>
+                                    {{else}}
+                                    <span class="badge badge-user">user</span>
+                                    {{end}}
+                                </td>
+                                <td>
+                                    {{if .IsActive}}
+                                    <span class="badge badge-active">actif</span>
+                                    {{else}}
+                                    <span class="badge badge-inactive">inactif</span>
+                                    {{end}}
+                                </td>
+                                <td>{{humanSize .UsedBytes}}</td>
+                                <td>
+                                    {{if gt .QuotaBytes 0}}
+                                    {{humanSize .QuotaBytes}}
+                                    <div class="progress-bar" style="width: 80px; display: inline-block; vertical-align: middle; margin-left: 6px;">
+                                        <div class="progress-fill" style="width: {{divPercent .UsedBytes .QuotaBytes}}%"></div>
+                                    </div>
+                                    {{else}}
+                                    ∞
+                                    {{end}}
+                                </td>
+                                <td style="color: var(--text2);">—</td>
+                                <td>
+                                    <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                                        <button class="btn btn-primary btn-sm edit-user-btn"
+                                            data-id="{{.ID}}"
+                                            data-username="{{.Username}}"
+                                            data-email="{{.Email}}"
+                                            data-role="{{.Role}}"
+                                            data-active="{{.IsActive}}"
+                                            data-quota="{{.QuotaBytes}}"
+                                            data-maxfile="{{.MaxFileSize}}">
+                                            ✏️
+                                        </button>
+                                        {{if .IsActive}}
+                                        <form method="POST" action="/admin/user/toggle/{{.ID}}" class="toggle-form">
+                                            <input type="hidden" name="_csrf_token" value="{{$.CSRFToken}}">
+                                            <input type="hidden" name="active" value="false">
+                                            <button type="submit" class="btn btn-warning btn-sm" title="Désactiver">🚫</button>
+                                        </form>
+                                        {{else}}
+                                        <form method="POST" action="/admin/user/toggle/{{.ID}}" class="toggle-form">
+                                            <input type="hidden" name="_csrf_token" value="{{$.CSRFToken}}">
+                                            <input type="hidden" name="active" value="true">
+                                            <button type="submit" class="btn btn-success btn-sm" title="Activer">✅</button>
+                                        </form>
+                                        {{end}}
+                                        <form method="POST" action="/admin/user/delete/{{.ID}}" class="delete-user-form">
+                                            <input type="hidden" name="_csrf_token" value="{{$.CSRFToken}}">
+                                            <button type="submit" class="btn btn-danger btn-sm" title="Supprimer">🗑</button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            {{end}}
+                        </tbody>
+                    </table>
+                </div>
+                {{else}}
+                <p style="color: var(--text2); text-align: center; padding: 32px;">Aucun utilisateur.</p>
+                {{end}}
+            </div>
+            {{end}}
+        </div>
+    </div>
+
+    <!-- Edit User Modal -->
+    <div class="modal-overlay" id="edit-modal">
+        <div class="modal">
+            <h3>✏️ Modifier l'utilisateur</h3>
+            <form method="POST" action="/admin/user/update" id="edit-user-form">
+                <input type="hidden" name="_csrf_token" value="{{.CSRFToken}}">
+                <input type="hidden" name="user_id" id="edit-user-id">
+                <div class="form-group">
+                    <label>Nom d'utilisateur</label>
+                    <input type="text" name="username" id="edit-username" style="width:100%;">
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" name="email" id="edit-email" style="width:100%;">
+                </div>
+                <div class="form-group">
+                    <label>Nouveau mot de passe (laisser vide pour ne pas changer)</label>
+                    <input type="password" name="password" id="edit-password" placeholder="••••••••" style="width:100%;">
+                </div>
+                <div class="form-group">
+                    <label>Rôle</label>
+                    <select name="role" id="edit-role" style="width:100%;">
+                        <option value="user">Utilisateur</option>
+                        <option value="admin">Administrateur</option>
+                    </select>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div class="form-group">
+                        <label>Quota</label>
+                        <div class="quota-input-group">
+                            <input type="number" name="quota_value" id="edit-quota-value" min="0" style="width:100%;">
+                            <select name="quota_unit" id="edit-quota-unit">
+                                <option value="GB">Go</option>
+                                <option value="MB">Mo</option>
+                                <option value="TB">To</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Taille max fichier</label>
+                        <div class="quota-input-group">
+                            <input type="number" name="max_file_value" id="edit-maxfile-value" min="0" style="width:100%;">
+                            <select name="max_file_unit" id="edit-maxfile-unit">
+                                <option value="GB">Go</option>
+                                <option value="MB">Mo</option>
+                                <option value="TB">To</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 8px; margin-top: 16px;">
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">Sauvegarder</button>
+                    <button type="button" class="btn btn-outline" id="close-edit-modal">Annuler</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script nonce="{{.Nonce}}">
+        // Smart unit conversion: bytes → best unit
+        function bytesToUnit(bytes) {
+            if (bytes <= 0) return { value: 0, unit: 'GB' };
+            var tb = 1024 * 1024 * 1024 * 1024;
+            var gb = 1024 * 1024 * 1024;
+            var mb = 1024 * 1024;
+            if (bytes >= tb && bytes % tb === 0) return { value: bytes / tb, unit: 'TB' };
+            if (bytes >= gb && bytes % gb === 0) return { value: bytes / gb, unit: 'GB' };
+            if (bytes >= mb) return { value: Math.round(bytes / mb), unit: 'MB' };
+            return { value: Math.round(bytes / gb * 10) / 10, unit: 'GB' };
+        }
+
+        // Search filter
+        document.getElementById('user-search').addEventListener('input', function() {
+            var q = this.value.toLowerCase();
+            var rows = document.querySelectorAll('#users-table tbody tr');
+            rows.forEach(function(row) {
+                var username = (row.getAttribute('data-username') || '').toLowerCase();
+                var email = (row.getAttribute('data-email') || '').toLowerCase();
+                row.style.display = (username.indexOf(q) !== -1 || email.indexOf(q) !== -1) ? '' : 'none';
+            });
+        });
+
+        // Edit user modal
+        document.querySelectorAll('.edit-user-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                document.getElementById('edit-user-id').value = this.getAttribute('data-id');
+                document.getElementById('edit-username').value = this.getAttribute('data-username');
+                document.getElementById('edit-email').value = this.getAttribute('data-email');
+                document.getElementById('edit-role').value = this.getAttribute('data-role');
+                document.getElementById('edit-password').value = '';
+
+                var quota = parseInt(this.getAttribute('data-quota')) || 0;
+                var qu = bytesToUnit(quota);
+                document.getElementById('edit-quota-value').value = qu.value;
+                document.getElementById('edit-quota-unit').value = qu.unit;
+
+                var maxfile = parseInt(this.getAttribute('data-maxfile')) || 0;
+                var mu = bytesToUnit(maxfile);
+                document.getElementById('edit-maxfile-value').value = mu.value;
+                document.getElementById('edit-maxfile-unit').value = mu.unit;
+
+                document.getElementById('edit-modal').classList.add('active');
+            });
+        });
+
+        document.getElementById('close-edit-modal').addEventListener('click', function() {
+            document.getElementById('edit-modal').classList.remove('active');
+        });
+
+        document.getElementById('edit-modal').addEventListener('click', function(e) {
+            if (e.target === this) this.classList.remove('active');
+        });
+
+        // Delete user confirmation
+        document.querySelectorAll('.delete-user-form').forEach(function(form) {
+            form.addEventListener('submit', function(e) {
+                if (!confirm('Supprimer cet utilisateur et tous ses fichiers ?')) {
+                    e.preventDefault();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
+{{end}}

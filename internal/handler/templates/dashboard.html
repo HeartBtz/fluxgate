@@ -1,0 +1,627 @@
+{{define "dashboard.html"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard — FluxGate</title>
+    <link rel="icon" type="image/png" href="/static/favicon.png">
+    <style>
+        :root {
+            --bg: #0f1117; --surface: #1a1d27; --surface2: #242836;
+            --border: #2d3248; --text: #e1e4ed; --text2: #8b92a8;
+            --accent: #6366f1; --accent2: #818cf8; --success: #22c55e;
+            --danger: #ef4444; --warning: #f59e0b; --radius: 8px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg); color: var(--text); line-height: 1.6; min-height: 100vh;
+        }
+        a { color: var(--accent2); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+        nav {
+            background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 0;
+        }
+        nav .container {
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .logo { font-size: 1.3rem; font-weight: 700; color: var(--accent2); letter-spacing: -0.5px; }
+        .logo span { color: var(--text2); font-weight: 400; }
+        nav .user-info {
+            display: flex; align-items: center; gap: 16px;
+            color: var(--text2); font-size: 0.9rem;
+        }
+        .btn {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 8px 16px; border: none; border-radius: var(--radius);
+            font-size: 0.875rem; font-weight: 500; cursor: pointer;
+            transition: all 0.15s; text-decoration: none; color: white;
+        }
+        .btn-primary { background: var(--accent); }
+        .btn-primary:hover { background: var(--accent2); text-decoration: none; }
+        .btn-danger { background: var(--danger); }
+        .btn-danger:hover { background: #dc2626; text-decoration: none; }
+        .btn-sm { padding: 4px 10px; font-size: 0.8rem; }
+        .btn-outline {
+            background: transparent; border: 1px solid var(--border); color: var(--text);
+        }
+        .btn-outline:hover { background: var(--surface2); text-decoration: none; }
+        .card {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 24px; margin-bottom: 20px;
+        }
+        .card h2 { font-size: 1.1rem; margin-bottom: 16px; color: var(--text); }
+        input, select {
+            padding: 10px 14px; background: var(--bg); border: 1px solid var(--border);
+            border-radius: var(--radius); color: var(--text); font-size: 0.9rem;
+        }
+        input:focus, select:focus { outline: none; border-color: var(--accent); }
+        label { display: block; margin-bottom: 6px; font-size: 0.85rem; color: var(--text2); font-weight: 500; }
+        .form-group { margin-bottom: 16px; }
+        .alert { padding: 12px 16px; border-radius: var(--radius); margin-bottom: 16px; font-size: 0.9rem; }
+        .alert.success {
+            background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); color: var(--success);
+        }
+        .alert.error {
+            background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: var(--danger);
+        }
+        table { width: 100%; border-collapse: collapse; }
+        th {
+            text-align: left; padding: 10px 12px; font-size: 0.8rem;
+            color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px;
+            border-bottom: 1px solid var(--border);
+        }
+        td { padding: 12px; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+        tr:hover { background: var(--surface2); }
+        .grid { display: grid; gap: 20px; }
+        .grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+        .stat-value { font-size: 1.8rem; font-weight: 700; color: var(--accent2); }
+        .stat-label { font-size: 0.85rem; color: var(--text2); }
+        .progress-bar {
+            height: 6px; background: var(--bg); border-radius: 3px;
+            overflow: hidden; margin-top: 8px;
+        }
+        .progress-fill {
+            height: 100%; background: var(--accent); border-radius: 3px;
+            transition: width 0.3s;
+        }
+        .drop-zone {
+            border: 2px dashed var(--border); border-radius: var(--radius);
+            padding: 40px 24px; text-align: center; cursor: pointer;
+            transition: all 0.15s; color: var(--text2);
+        }
+        .drop-zone:hover, .drop-zone.drag-over {
+            border-color: var(--accent); background: rgba(99,102,241,0.05);
+        }
+        .drop-zone .icon { font-size: 2rem; margin-bottom: 8px; }
+        .drop-zone p { font-size: 0.9rem; }
+        .upload-progress { margin-top: 16px; display: none; }
+        .upload-progress.active { display: block; }
+        .url-display {
+            display: block; padding: 8px 12px; background: var(--bg);
+            border: 1px solid var(--border); border-radius: var(--radius);
+            font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;
+            word-break: break-all; margin: 8px 0; user-select: all;
+        }
+        .actions { display: flex; gap: 6px; }
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.6); z-index: 100;
+            align-items: center; justify-content: center;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 24px; width: 100%; max-width: 480px;
+        }
+        .modal h3 { margin-bottom: 16px; }
+        .main-content { padding: 24px 0; }
+        @media (max-width: 768px) { .grid-3 { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="container">
+            <div class="logo">⚡ FluxGate</div>
+            <div class="user-info">
+                {{if .User}}
+                {{if eq .User.Role "admin"}}<a href="/admin" class="btn btn-outline btn-sm">⚙ Admin</a>{{end}}
+                <span>{{.User.Username}}</span>
+                <form method="POST" action="/logout" style="display:inline;">
+                    <input type="hidden" name="_csrf_token" value="{{$.CSRFToken}}">
+                    <button type="submit" class="btn btn-outline btn-sm">Logout</button>
+                </form>
+                {{end}}
+            </div>
+        </div>
+    </nav>
+
+    <div class="main-content">
+        <div class="container">
+            <div id="alerts"></div>
+
+            <!-- Stats -->
+            {{if .Data}}
+            <div class="grid grid-3" style="margin-bottom: 24px;">
+                <div class="card">
+                    <div class="stat-value">{{.Data.TotalFiles}}</div>
+                    <div class="stat-label">Total Files</div>
+                </div>
+                <div class="card">
+                    {{if .Data.Quota}}
+                    <div class="stat-value">{{humanSize .Data.Quota.UsedBytes}}</div>
+                    <div class="stat-label">Storage Used</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: {{if .Data.Quota.QuotaBytes}}{{printf "%.0f" (divPercent .Data.Quota.UsedBytes .Data.Quota.QuotaBytes)}}%{{else}}0%{{end}}"></div>
+                    </div>
+                    {{else}}
+                    <div class="stat-value">—</div>
+                    <div class="stat-label">Storage Used</div>
+                    {{end}}
+                </div>
+                <div class="card">
+                    {{if .Data.Quota}}
+                    <div class="stat-value">{{humanSize .Data.Quota.QuotaBytes}}</div>
+                    <div class="stat-label">Quota Limit</div>
+                    {{else}}
+                    <div class="stat-value">∞</div>
+                    <div class="stat-label">Unlimited</div>
+                    {{end}}
+                </div>
+            </div>
+
+            <!-- Upload -->
+            <div class="card">
+                <h2>📤 Upload File</h2>
+                <form id="upload-form" enctype="multipart/form-data" method="POST" action="/web/upload">
+                    <input type="hidden" name="_csrf_token" value="{{.CSRFToken}}">
+                    <div class="drop-zone" id="drop-zone">
+                        <div class="icon">📁</div>
+                        <p>Drop file here or click to browse</p>
+                        <p style="font-size: 0.8rem; margin-top: 4px;">Max 100GB per file</p>
+                    </div>
+                    <input type="file" id="file-input" name="file" style="display:none">
+                    <div id="selected-file" style="margin-top: 12px; display: none;">
+                        <span id="selected-filename" style="color: var(--accent2);"></span>
+                        <span id="selected-size" style="color: var(--text2); margin-left: 8px;"></span>
+                    </div>
+                    <div class="upload-progress" id="upload-progress">
+                        <div class="progress-bar" style="height: 8px;">
+                            <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-top: 4px; font-size: 0.85rem; color: var(--text2);">
+                            <span id="progress-text">0%</span>
+                            <span id="upload-speed"></span>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="margin-top: 16px; width: 100%;" id="upload-btn">Upload</button>
+                    <button type="button" class="btn btn-outline" style="display:none; margin-top: 8px; width: 100%;" id="cancel-upload-btn">Cancel upload</button>
+                </form>
+            </div>
+
+            <!-- Files -->
+            <div class="card">
+                <h2>📋 Your Files</h2>
+                {{if .Data.Files}}
+                <div style="overflow-x: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Size</th>
+                                <th>Type</th>
+                                <th>Uploaded</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {{range .Data.Files}}
+                            <tr id="file-{{.ID}}">
+                                <td>{{truncate .OriginalName 40}}</td>
+                                <td>{{humanSize .SizeBytes}}</td>
+                                <td style="color: var(--text2);">{{.MIMEType}}</td>
+                                <td style="color: var(--text2);">{{timeAgo .CreatedAt}}</td>
+                                <td>
+                                    <div class="actions">
+                                        <button class="btn btn-primary btn-sm"
+                                            data-file-id="{{.ID}}" data-file-name="{{.OriginalName}}">
+                                            🔗 Link
+                                        </button>
+                                        <form method="POST" action="/web/delete/{{.ID}}"
+                                            class="delete-form">
+                                            <input type="hidden" name="_csrf_token" value="{{$.CSRFToken}}">
+                                            <button type="submit" class="btn btn-danger btn-sm">🗑</button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            {{end}}
+                        </tbody>
+                    </table>
+                </div>
+                {{else}}
+                <p style="color: var(--text2); text-align: center; padding: 32px;">No files yet. Upload your first file above.</p>
+                {{end}}
+            </div>
+            {{end}}
+        </div>
+    </div>
+
+    <!-- Create Link Modal -->
+    <div class="modal-overlay" id="link-modal">
+        <div class="modal">
+            <h3>🔗 Create Download Link</h3>
+            <form method="POST" action="/web/link" id="link-form">
+                <input type="hidden" name="_csrf_token" value="{{.CSRFToken}}">
+                <input type="hidden" name="file_id" id="link-file-id">
+                <div style="margin-bottom: 12px; color: var(--text2);">
+                    File: <strong id="link-file-name" style="color: var(--text);"></strong>
+                </div>
+                <div class="form-group">
+                    <label for="link-type">Link Type</label>
+                    <select name="type" id="link-type" style="width: 100%;">
+                        <option value="public">Public (no password)</option>
+                        <option value="private">Private (password required)</option>
+                        <option value="signed">Signed (HMAC verified)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="link-expires">Expires In</label>
+                    <select name="expires_in" id="link-expires" style="width: 100%;">
+                        <option value="1h">1 Hour</option>
+                        <option value="24h">24 Hours</option>
+                        <option value="7d" selected>7 Days</option>
+                        <option value="30d">30 Days</option>
+                        <option value="90d">90 Days</option>
+                    </select>
+                </div>
+                <div class="form-group" id="password-group" style="display: none;">
+                    <label for="link-password">Password</label>
+                    <input type="password" name="password" id="link-password" placeholder="8-72 bytes" minlength="8" autocomplete="new-password" disabled>
+                </div>
+                <div class="form-group">
+                    <label for="link-max-downloads">Maximum downloads (blank = unlimited)</label>
+                    <input type="number" name="max_downloads" id="link-max-downloads" min="1" step="1">
+                </div>
+                <div id="link-result"></div>
+                <div style="display: flex; gap: 8px; margin-top: 16px;">
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">Create Link</button>
+                    <button type="button" class="btn btn-outline" id="close-modal-btn">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script nonce="{{.Nonce}}">
+        function escapeHTML(value) {
+            return String(value).replace(/[&<>"']/g, function(char) {
+                return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[char];
+            });
+        }
+
+        function humanizeBytes(bytes) {
+            const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+            if (bytes === 0) return '0 B';
+            const i = Math.floor(Math.log(bytes) / Math.log(1024));
+            return (bytes / Math.pow(1024, i)).toFixed(i > 0 ? 1 : 0) + ' ' + sizes[i];
+        }
+
+        function handleFileSelect(input) {
+            if (input.files.length > 0) {
+                const f = input.files[0];
+                document.getElementById('selected-file').style.display = 'block';
+                document.getElementById('selected-filename').textContent = f.name;
+                document.getElementById('selected-size').textContent = humanizeBytes(f.size);
+            }
+        }
+
+        function showLinkModal(fileId, fileName) {
+            document.getElementById('link-file-id').value = fileId;
+            document.getElementById('link-file-name').textContent = fileName;
+            document.getElementById('link-result').innerHTML = '';
+            document.getElementById('link-password').value = '';
+            document.getElementById('link-modal').classList.add('active');
+        }
+
+        function closeLinkModal() {
+            document.getElementById('link-modal').classList.remove('active');
+        }
+
+        // Drop zone click to trigger file input
+        var dropZone = document.getElementById('drop-zone');
+        if (dropZone) {
+            dropZone.addEventListener('click', function() {
+                document.getElementById('file-input').click();
+            });
+        }
+
+        // File input change
+        document.getElementById('file-input').addEventListener('change', function() {
+            handleFileSelect(this);
+        });
+
+        // Drag & drop
+        if (dropZone) {
+            ['dragenter','dragover'].forEach(function(e) {
+                dropZone.addEventListener(e, function(ev) { ev.preventDefault(); dropZone.classList.add('drag-over'); });
+            });
+            ['dragleave','drop'].forEach(function(e) {
+                dropZone.addEventListener(e, function(ev) { ev.preventDefault(); dropZone.classList.remove('drag-over'); });
+            });
+            dropZone.addEventListener('drop', function(ev) {
+                var files = ev.dataTransfer.files;
+                if (files.length > 0) {
+                    document.getElementById('file-input').files = files;
+                    handleFileSelect(document.getElementById('file-input'));
+                }
+            });
+        }
+
+        // Resumable chunked upload. The session is kept locally so selecting
+        // the same file after a refresh resumes from the server-side offset.
+        var activeUpload = null;
+        var cancelUploadBtn = document.getElementById('cancel-upload-btn');
+        cancelUploadBtn.addEventListener('click', function() {
+            if (!activeUpload || !activeUpload.sessionId) return;
+            var current = activeUpload;
+            current.controller.abort();
+            cancelUploadBtn.disabled = true;
+            fetch('/web/upload/' + current.sessionId, {
+                method: 'DELETE', credentials: 'same-origin',
+                headers: {'X-CSRF-Token': current.csrf}
+            }).then(function(response) {
+                if (!response.ok && response.status !== 404) {
+                    return response.text().then(function(body) { throw new Error(body || 'Cancel failed'); });
+                }
+                localStorage.removeItem(current.storageKey);
+                activeUpload = null;
+                cancelUploadBtn.style.display = 'none';
+                cancelUploadBtn.disabled = false;
+                document.getElementById('upload-btn').disabled = false;
+                document.getElementById('upload-btn').textContent = 'Upload';
+                document.getElementById('alerts').innerHTML = '<div class="alert success">Upload cancelled and reservation released.</div>';
+            }).catch(function(error) {
+                cancelUploadBtn.disabled = false;
+                document.getElementById('alerts').textContent = error.message;
+            });
+        });
+        document.getElementById('upload-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            var fileInput = document.getElementById('file-input');
+            if (!fileInput.files.length) { alert('Select a file first'); return; }
+            var file = fileInput.files[0];
+            var csrf = document.querySelector('input[name="_csrf_token"]').value;
+            var progressDiv = document.getElementById('upload-progress');
+            var progressFill = document.getElementById('progress-fill');
+            var progressText = document.getElementById('progress-text');
+            var speedText = document.getElementById('upload-speed');
+            var uploadBtn = document.getElementById('upload-btn');
+            var uploadController = new AbortController();
+            var startTime = Date.now();
+            progressDiv.classList.add('active');
+            uploadBtn.disabled = true;
+            uploadBtn.textContent = 'Uploading...';
+
+            function storageKey() {
+                return 'fluxgate-upload:' + {{.User.ID}} + ':' + file.name + ':' + file.size + ':' + file.lastModified;
+            }
+            function sleep(ms) { return new Promise(function(resolve) { setTimeout(resolve, ms); }); }
+            function updateProgress(offset, initialOffset) {
+                var pct = file.size > 0 ? Math.round((offset / file.size) * 100) : 100;
+                progressFill.style.width = pct + '%';
+                progressText.textContent = pct + '%';
+                var elapsed = (Date.now() - startTime) / 1000;
+                if (elapsed > 0) speedText.textContent = humanizeBytes((offset - initialOffset) / elapsed) + '/s';
+            }
+            function responseError(response) {
+                return response.text().then(function(body) {
+                    var error = new Error(body || ('HTTP ' + response.status));
+                    error.status = response.status;
+                    error.retryAfter = Number(response.headers.get('Retry-After')) || 0;
+                    throw error;
+                });
+            }
+            function getStatus(sessionId) {
+                return fetch('/web/upload/' + sessionId, {
+                    credentials: 'same-origin', headers: {'X-CSRF-Token': csrf}
+                }).then(function(response) {
+                    if (!response.ok) return responseError(response);
+                    return response.json();
+                });
+            }
+            function createSession() {
+                return fetch('/web/upload/init', {
+                    method: 'POST', credentials: 'same-origin',
+                    headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
+                    body: JSON.stringify({
+                        filename: file.name, total_size: file.size,
+                        chunk_size: 64 * 1024 * 1024,
+                        mime_type: file.type || 'application/octet-stream'
+                    })
+                }).then(function(response) {
+                    if (!response.ok) return responseError(response);
+                    return response.json();
+                }).then(function(session) {
+                    localStorage.setItem(storageKey(), JSON.stringify(session));
+                    return {session_id: session.session_id, chunk_size: session.chunk_size, uploaded_bytes: 0};
+                });
+            }
+            function loadSession() {
+                var saved;
+                try { saved = JSON.parse(localStorage.getItem(storageKey())); } catch (_) {}
+                if (!saved || !saved.session_id) return createSession();
+                return getStatus(saved.session_id).then(function(status) {
+                    if (status.total_size !== file.size) throw new Error('Upload session mismatch');
+                    return status;
+                }).catch(function(error) {
+                    if (error.status !== 404 && error.status !== 410) throw error;
+                    localStorage.removeItem(storageKey());
+                    return createSession();
+                });
+            }
+            function sendChunk(sessionId, offset, chunkSize) {
+                var end = Math.min(offset + chunkSize, file.size);
+                var attempt = 0;
+                function trySend(currentOffset) {
+                    end = Math.min(currentOffset + chunkSize, file.size);
+                    return fetch('/web/upload/' + sessionId, {
+                        method: 'PATCH', credentials: 'same-origin',
+                        headers: {'Upload-Offset': String(currentOffset), 'X-CSRF-Token': csrf},
+                        body: file.slice(currentOffset, end), signal: uploadController.signal
+                    }).then(function(response) {
+                        if (!response.ok) return responseError(response);
+                        return Number(response.headers.get('Upload-Offset'));
+                    }).catch(function(error) {
+                        if (error.name === 'AbortError') throw error;
+                        attempt++;
+                        if (attempt > 5 || (error.status && error.status < 500 && error.status !== 429)) throw error;
+                        var delay = error.retryAfter > 0 ? error.retryAfter * 1000 : Math.min(1000 * Math.pow(2, attempt - 1), 10000);
+                        return sleep(delay).then(function() { return getStatus(sessionId); }).then(function(status) {
+                            if (status.uploaded_bytes >= end) return status.uploaded_bytes;
+                            return trySend(status.uploaded_bytes);
+                        });
+                    });
+                }
+                return trySend(offset);
+            }
+            function finish(sessionId) {
+                uploadBtn.textContent = 'Finalizing...';
+                return fetch('/web/upload/' + sessionId + '/complete', {
+                    method: 'POST', credentials: 'same-origin', headers: {'X-CSRF-Token': csrf},
+                    signal: uploadController.signal
+                }).then(function(response) {
+                    if (!response.ok) return responseError(response);
+                    return response.json();
+                });
+            }
+            function showSuccess(resp) {
+                var html = '<div class="alert success" style="word-break:break-all;">' +
+                    '<strong>✅ ' + escapeHTML(resp.file) + ' (' + humanizeBytes(resp.size) + ')</strong>';
+                if (resp.download_url) {
+                    var safeURL = escapeHTML(resp.download_url);
+                    html += '<br><br>🔗 Lien de téléchargement (expire dans 1h) :<br>' +
+                        '<code class="url-display" style="cursor:pointer;" id="auto-link-url">' + safeURL + '</code>' +
+                        '<small style="color:var(--text2);">wget ' + safeURL + '</small>';
+                }
+                html += '</div>';
+                document.getElementById('alerts').innerHTML = html;
+                var urlEl = document.getElementById('auto-link-url');
+                if (urlEl) urlEl.addEventListener('click', function() {
+                    navigator.clipboard.writeText(this.textContent);
+                    this.style.borderColor = 'var(--success)';
+                });
+            }
+
+            loadSession().then(function(session) {
+                activeUpload = {
+                    sessionId: session.session_id,
+                    storageKey: storageKey(),
+                    csrf: csrf,
+                    controller: uploadController
+                };
+                cancelUploadBtn.style.display = 'block';
+                var initialOffset = session.uploaded_bytes || 0;
+                var offset = initialOffset;
+                var chunkSize = session.chunk_size || 64 * 1024 * 1024;
+                updateProgress(offset, initialOffset);
+                function next() {
+                    if (offset >= file.size) return finish(session.session_id);
+                    return sendChunk(session.session_id, offset, chunkSize).then(function(nextOffset) {
+                        if (!Number.isFinite(nextOffset) || nextOffset <= offset) throw new Error('Invalid server upload offset');
+                        offset = nextOffset;
+                        updateProgress(offset, initialOffset);
+                        return next();
+                    });
+                }
+                return next();
+            }).then(function(resp) {
+                localStorage.removeItem(storageKey());
+                activeUpload = null;
+                cancelUploadBtn.style.display = 'none';
+                uploadBtn.disabled = false;
+                uploadBtn.textContent = 'Upload';
+                showSuccess(resp);
+                setTimeout(function() { location.reload(); }, 5000);
+            }).catch(function(error) {
+                if (error.name === 'AbortError') return;
+                uploadBtn.disabled = false;
+                uploadBtn.textContent = 'Resume upload';
+                document.getElementById('alerts').innerHTML =
+                    '<div class="alert error">Upload paused: ' + escapeHTML(error.message) + '. Click Resume upload to continue.</div>';
+            });
+        });
+
+        // Link modal buttons
+        document.querySelectorAll('[data-file-id]').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                showLinkModal(this.getAttribute('data-file-id'), this.getAttribute('data-file-name'));
+            });
+        });
+
+        // Delete without a page transition. The server still supports regular
+        // form submissions when JavaScript is unavailable.
+        document.querySelectorAll('.delete-form').forEach(function(form) {
+            form.addEventListener('submit', function(e) {
+                if (!confirm('Delete this file?')) {
+                    e.preventDefault();
+                    return;
+                }
+                e.preventDefault();
+                var csrf = form.querySelector('input[name="_csrf_token"]').value;
+                fetch(form.action, {
+                    method: 'POST',
+                    headers: {'HX-Request': 'true', 'X-CSRF-Token': csrf},
+                    body: new FormData(form),
+                    credentials: 'same-origin'
+                }).then(function(response) {
+                    if (!response.ok) throw new Error('Delete failed');
+                    location.reload();
+                }).catch(function(error) {
+                    document.getElementById('alerts').textContent = error.message;
+                });
+            });
+        });
+
+        // Create links without loading a third-party JavaScript framework.
+        var linkForm = document.getElementById('link-form');
+        linkForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            var csrf = linkForm.querySelector('input[name="_csrf_token"]').value;
+            fetch(linkForm.action, {
+                method: 'POST',
+                headers: {'HX-Request': 'true', 'X-CSRF-Token': csrf},
+                body: new FormData(linkForm),
+                credentials: 'same-origin'
+            }).then(function(response) {
+                return response.text().then(function(body) {
+                    if (!response.ok) throw new Error(body || 'Link creation failed');
+                    document.getElementById('link-result').innerHTML = body;
+                });
+            }).catch(function(error) {
+                document.getElementById('link-result').textContent = error.message;
+            });
+        });
+
+        // Close modal button
+        document.getElementById('close-modal-btn').addEventListener('click', closeLinkModal);
+
+        // Link type change
+        document.getElementById('link-type').addEventListener('change', function() {
+            var password = document.getElementById('link-password');
+            password.disabled = this.value !== 'private';
+            password.required = this.value === 'private';
+            if (password.disabled) password.value = '';
+            document.getElementById('password-group').style.display =
+                this.value === 'private' ? 'block' : 'none';
+        });
+
+        // Close modal on overlay click
+        document.getElementById('link-modal').addEventListener('click', function(e) {
+            if (e.target === this) closeLinkModal();
+        });
+    </script>
+</body>
+</html>
+{{end}}

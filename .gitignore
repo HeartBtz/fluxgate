@@ -1,0 +1,49 @@
+# Binaries
+/fluxgate
+/fluxgate-cli
+/server
+/main
+/bin/
+
+# Go
+vendor/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Test files
+test-*.go
+coverage.out
+coverage.html
+
+# Environment
+.env
+*.env.local
+
+# Data
+/data/
+/uploads/
+*.cbz
+*.cbr
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+*:Zone.Identifier
+
+# Docker
+docker-compose.override.yml
+
+# Logs
+*.log

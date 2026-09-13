@@ -1,0 +1,8 @@
+.git
+.gitignore
+.env
+*.png
+!web/static/favicon.png
+bin/
+coverage.out
+deploy/

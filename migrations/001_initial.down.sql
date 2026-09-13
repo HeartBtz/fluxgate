@@ -1,0 +1,12 @@
+DROP TRIGGER IF EXISTS update_upload_sessions_updated_at ON upload_sessions;
+DROP TRIGGER IF EXISTS update_files_updated_at ON files;
+DROP TRIGGER IF EXISTS update_users_updated_at ON users;
+DROP FUNCTION IF EXISTS update_updated_at_column();
+DROP TABLE IF EXISTS signing_keys;
+DROP TABLE IF EXISTS audit_logs;
+DROP TABLE IF EXISTS upload_sessions;
+DROP TABLE IF EXISTS download_logs;
+DROP TABLE IF EXISTS download_links;
+DROP TABLE IF EXISTS files;
+DROP TABLE IF EXISTS api_keys;
+DROP TABLE IF EXISTS users;
