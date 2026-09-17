@@ -42,6 +42,11 @@ var (
 )
 
 func main() {
+	if len(os.Args) == 2 && (os.Args[1] == "--version" || os.Args[1] == "version") {
+		fmt.Printf("fluxgate %s (%s)\n", Version, BuildTime)
+		return
+	}
+
 	// Load config
 	cfg := config.Load()
 
