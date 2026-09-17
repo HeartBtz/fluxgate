@@ -1,0 +1,82 @@
+stages: [test, build]
+
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/ && $CI_COMMIT_REF_PROTECTED == "true"'
+    - when: never
+
+default:
+  interruptible: true
+  timeout: 30 minutes
+
+variables:
+  GO_IMAGE: golang:1.26.7-bookworm
+
+.go-job:
+  before_script:
+    - export GO_CACHE_DIR="$CI_PROJECT_DIR/.go-cache-$CI_JOB_ID"
+    - mkdir -p "$GO_CACHE_DIR/build" "$GO_CACHE_DIR/mod"
+  after_script:
+    - rm -rf "$CI_PROJECT_DIR/.go-cache-$CI_JOB_ID"
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/ && $CI_COMMIT_REF_PROTECTED == "true"'
+
+go-test:
+  extends: .go-job
+  stage: test
+  script:
+    - >-
+      docker run --rm --user "$(id -u):$(id -g)"
+      --volume "$CI_PROJECT_DIR:/src" --workdir /src
+      --env GOCACHE=/src/.go-cache-$CI_JOB_ID/build
+      --env GOMODCACHE=/src/.go-cache-$CI_JOB_ID/mod
+      "$GO_IMAGE" go test -race ./...
+
+go-vet:
+  extends: .go-job
+  stage: test
+  script:
+    - >-
+      docker run --rm --user "$(id -u):$(id -g)"
+      --volume "$CI_PROJECT_DIR:/src" --workdir /src
+      --env GOCACHE=/src/.go-cache-$CI_JOB_ID/build
+      --env GOMODCACHE=/src/.go-cache-$CI_JOB_ID/mod
+      "$GO_IMAGE" go vet ./...
+
+release-policy:
+  stage: test
+  variables:
+    GIT_DEPTH: "0"
+  script:
+    - git fetch --no-tags origin "$CI_DEFAULT_BRANCH:refs/remotes/origin/$CI_DEFAULT_BRANCH"
+    - git merge-base --is-ancestor "$CI_COMMIT_SHA" "origin/$CI_DEFAULT_BRANCH"
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/ && $CI_COMMIT_REF_PROTECTED == "true"'
+
+build-release:
+  extends: .go-job
+  stage: build
+  needs: [go-test, go-vet, release-policy]
+  script:
+    - VERSION="${CI_COMMIT_TAG#v}"
+    - mkdir -p dist
+    - >-
+      docker run --rm --user "$(id -u):$(id -g)"
+      --volume "$CI_PROJECT_DIR:/src" --workdir /src
+      --env GOCACHE=/src/.go-cache-$CI_JOB_ID/build
+      --env GOMODCACHE=/src/.go-cache-$CI_JOB_ID/mod
+      --env CGO_ENABLED=0 --env VERSION="$VERSION" --env BUILD_TIME="$CI_COMMIT_TIMESTAMP"
+      "$GO_IMAGE" sh -ec
+      'go build -trimpath -ldflags="-s -w -X main.Version=$VERSION -X main.BuildTime=$BUILD_TIME" -o dist/fluxgate ./cmd/server;
+      go build -trimpath -ldflags="-s -w -X main.Version=$VERSION" -o dist/fluxgate-cli ./cmd/fluxgate-cli'
+    - test "$(./dist/fluxgate --version)" = "fluxgate $VERSION ($CI_COMMIT_TIMESTAMP)"
+    - test "$(./dist/fluxgate-cli version)" = "fluxgate-cli $VERSION"
+    - go version -m dist/fluxgate | grep -Fq $'mod\tgithub.com/HeartBtz/fluxgate\t'
+    - bash scripts/deploy-production_test.sh
+  artifacts:
+    paths: [dist/fluxgate, dist/fluxgate-cli]
+    expire_in: 30 days
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/ && $CI_COMMIT_REF_PROTECTED == "true"'
