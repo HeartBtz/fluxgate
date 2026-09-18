@@ -23,6 +23,13 @@ forced-command protocol. Relay then verifies that `/health` returns the exact
 release version. CT110 must be changed and reviewed separately; this repository
 does not attempt to modify it.
 
+Every SSH connection goes through the Teleport bastion. The former direct
+root key entry for the CT110 receiver (source CT105, forced command
+`/usr/local/sbin/deploy-gosites`) was removed on 2026-09-18. The future job
+must run on the CT105 runner and reach the receiver with
+`ssh root@ct110-go.homelab.hbtz.lan /usr/local/sbin/<receiver> ...` using the
+runner's Teleport Machine ID; no deploy key or CI SSH variable.
+
 After that receiver change, add a protected, manual, tag-only
 `deploy-production` job using `scripts/deploy-production.sh`. Configure its
 environment as `production`, serialize it with a FluxGate-specific
