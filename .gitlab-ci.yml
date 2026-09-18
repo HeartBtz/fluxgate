@@ -71,7 +71,10 @@ build-release:
       go build -trimpath -ldflags="-s -w -X main.Version=$VERSION" -o dist/fluxgate-cli ./cmd/fluxgate-cli'
     - test "$(./dist/fluxgate --version)" = "fluxgate $VERSION ($CI_COMMIT_TIMESTAMP)"
     - test "$(./dist/fluxgate-cli version)" = "fluxgate-cli $VERSION"
-    - go version -m dist/fluxgate | grep -Fq $'mod\tgithub.com/HeartBtz/fluxgate\t'
+    - >-
+      docker run --rm --user "$(id -u):$(id -g)" --env HOME=/tmp
+      --volume "$CI_PROJECT_DIR:/src:ro" --workdir /src
+      "$GO_IMAGE" go version -m dist/fluxgate | grep -Fq $'mod\tgithub.com/HeartBtz/fluxgate\t'
     - bash scripts/deploy-production_test.sh
   artifacts:
     paths: [dist/fluxgate, dist/fluxgate-cli]
